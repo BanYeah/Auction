@@ -417,16 +417,62 @@ public class Auction {
 		System.out.println("Your item has been successfully listed.\n");
 	}
 
-	public static void CheckSellStatus(){
+	public static void CheckSellStatus() {
 		/* TODO: Check the status of the item the current user is selling */
+		handleAuctionClosure(); // 경매 마감 확인
 
-		System.out.println("item listed in Auction | bidder (buyer ID) | bidding price | bidding date/time \n");
-		System.out.println("-------------------------------------------------------------------------------\n");
-		/*
-		   while(rset.next(){
-		   System.out.println();
-		   }
-		 */
+		System.out.println("item listed in Auction | status | bidder (buyer ID) | bidding price | bidding date/time");
+		System.out.println("---------------------------------------------------------------------------------------");
+
+		Timestamp bid_time;
+		String description, status, bidder_id;
+		long auction_id;
+		int bid_price;
+		try (PreparedStatement p = conn.prepareStatement(
+			"SELECT description, auction_id, status " +
+			"FROM items NATURAL JOIN auctions " +
+			"WHERE seller_id = ?"
+		)) {
+			p.setString(1, username);
+
+			try (ResultSet item_rset = p.executeQuery()) {
+				while (item_rset.next()) {
+					description = item_rset.getString("description");
+					auction_id = item_rset.getLong("auction_id");
+					status = item_rset.getString("status");
+
+					System.out.print(description + " | " + status);
+					if (status.equals("LISTED") || status.equals("EXPIRED")) {
+						System.out.println();
+						continue;
+					}
+
+					try (PreparedStatement pStmt = conn.prepareStatement(
+						"SELECT bidder_id, bid_price, bid_time " +
+						"FROM bids " +
+						"WHERE auction_id = ? " +
+						"ORDER BY bid_price DESC, bid_time ASC " +
+						"LIMIT 1"
+					)) {
+						pStmt.setLong(1, auction_id);
+
+						try (ResultSet rset = pStmt.executeQuery()) {
+							rset.next();
+							bidder_id = rset.getString("bidder_id");
+							bid_price = rset.getInt("bid_price");
+							bid_time = rset.getTimestamp("bid_time");
+						}
+					}
+
+					DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+					LocalDateTime dateTime = bid_time.toLocalDateTime();
+					System.out.println(" | " + bidder_id + " | " + bid_price + " | " + dateTime.format(formatter));
+				}
+				System.out.println();
+			}
+		} catch (SQLException e) {
+			System.out.println("SQLException : " + e);
+		}
 	}
 
 	public static boolean BuyItem(){
