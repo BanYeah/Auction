@@ -1,0 +1,9 @@
+# IntelliJ IDEA project files
+.idea/
+*.iml
+
+# Java class files
+*.class
+
+# PostgreSQL JDBC Driver
+postgresql-42.6.0.jar

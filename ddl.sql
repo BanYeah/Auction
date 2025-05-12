@@ -1,0 +1,65 @@
+CREATE TABLE users (
+    user_id TEXT PRIMARY KEY,
+    password TEXT NOT NULL,
+    is_admin BOOLEAN DEFAULT false
+);
+
+CREATE TABLE items (
+    item_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    category VARCHAR(12) NOT NULL CHECK (category IN ('ELECTRONICS', 'BOOKS', 'HOME', 'CLOTHING', 'SPORTS', 'OTHERS')),
+    description TEXT NOT NULL,
+    condition VARCHAR(10) NOT NULL CHECK (condition IN ('NEW', 'LIKE-NEW', 'GOOD', 'ACCEPTABLE')),
+    seller_id TEXT NOT NULL REFERENCES users(user_id),
+    auction_id BIGINT
+);
+
+-- item 경매 --
+CREATE TABLE auctions (
+    auction_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    item_id BIGINT NOT NULL REFERENCES items(item_id),
+    starting_price INT NOT NULL,
+    current_price INT NOT NULL,
+    buy_it_now_price INT NOT NULL,
+    bid_start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    bid_end_time TIMESTAMP NOT NULL,
+    status VARCHAR(7) DEFAULT 'LISTED' CHECK (status IN ('LISTED', 'BIDDING', 'SOLD', 'EXPIRED'))
+    -- LISTED: 입찰자 부재
+    -- BIDDING: 입찰자 존재
+    -- SOLD: 경매 종료 및 낙찰자 존재
+    -- EXPIRED: 경매 종료 및 입찰자 부재 (유찰)
+);
+
+-- 경매 상태 최신화를 위해, 입찰 종료 여부를 지속적으로 확인하기 때문에
+CREATE INDEX idx_auctions_bid_end_time ON auctions(bid_end_time);
+
+ALTER TABLE items
+    ADD FOREIGN KEY (auction_id) REFERENCES auctions(auction_id);
+
+-- item 입찰서 (모든 입찰자)--
+CREATE TABLE bids (
+    bid_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    bidder_id TEXT NOT NULL REFERENCES users(user_id),
+    auction_id BIGINT NOT NULL REFERENCES auctions(auction_id),
+    bid_price INT NOT NULL,
+    bid_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    bid_status VARCHAR(6) DEFAULT 'ACTIVE' NOT NULL CHECK (bid_status IN ('ACTIVE', 'OUTBID', 'WON'))
+    -- ACTIVE: 경매 진행 중, 현재 최고가 입찰자
+    -- OUTBID: 낙찰 실패
+    -- WON: 낙찰
+);
+
+-- item 청구서 (낙찰자만) --
+CREATE TABLE billings (
+    billing_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    item_id BIGINT NOT NULL REFERENCES items(item_id),
+    buyer_id TEXT NOT NULL REFERENCES users(user_id),
+    seller_id TEXT NOT NULL REFERENCES users(user_id),
+    final_price INT NOT NULL, -- 최고가 입찰 금액
+    transaction_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- 경매 입찰 종료 시간 (즉, 자동 결제) 또는 즉시 구매가 이루어진 시간
+    payment_status VARCHAR(10) DEFAULT 'COMPLETED' CHECK (payment_status IN ('PENDING', 'COMPLETED', 'FAILED', 'REFUNDED'))
+    -- PENDING: 보류 중
+    -- COMPLETED: 결제 완료
+    -- FAILED: 결제 실패
+    -- REFUNDED: 환불
+    -- 사용자의 잔액과 결제를 할 것인지 확인하는 부분이 추가로 필요하므로, 결제 완료 상태로 통일
+);
