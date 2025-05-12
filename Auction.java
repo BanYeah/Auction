@@ -215,11 +215,232 @@ public class Auction {
         System.out.println("Your account has been successfully created.\n");
 	}
 
-	private static boolean SellMenu() {
-		Category category;
-		Condition condition;
+	private static void AdminMenu() {
+		String adminname, adminpass;
+		System.out.print(
+			"----< Login as Administrator >\n" +
+			" ** To go back, enter 'back' in user ID.\n" +
+			"---- admin ID: "
+		);
+
+		adminname = scanner.next();
+		scanner.nextLine();
+		if (adminname.equalsIgnoreCase("back"))
+			return;
+
+		System.out.print("---- password: ");
+		adminpass = scanner.next();
+		scanner.nextLine();
+
+		/* TODO: check the admin's account and password. */
+		try (PreparedStatement pStmt = conn.prepareStatement(
+			"SELECT * " +
+			"FROM users " +
+			"WHERE user_id = ? AND password = ? AND is_admin = TRUE"
+		)) {
+			pStmt.setString(1, adminname);
+			pStmt.setString(2, adminpass);
+
+			try (ResultSet rset = pStmt.executeQuery()) {
+				if (!rset.next()) throw new SQLException();
+			}
+		} catch (SQLException e) {
+			System.out.println();
+			return; // login failed. go back to the previous menu.
+		}
+		System.out.println();
+
+		String category, seller;
 		char choice;
-		int price;
+		do {
+			System.out.println(
+				"----< Admin menu > \n" +
+				"    1. Print Sold Items per Category \n" +
+				"    2. Print Account Balance for Seller \n" +
+				"    3. Print Seller Ranking \n" +
+				"    4. Print Buyer Ranking \n" +
+				"    P. Go Back to Previous Menu"
+				);
+
+			try {
+				choice = scanner.next().charAt(0);
+				scanner.nextLine();
+			} catch (java.util.InputMismatchException e) {
+				System.out.println("Error: Invalid input is entered. Try again.\n");
+				continue;
+			}
+
+			LocalDateTime dateTime;
+			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+			if (choice == '1') {
+				/* TODO: Print Sold Items per Category */
+				handleAuctionClosure(); // 경매 마감 확인
+
+				System.out.println("----Enter Category to search : ");
+				category = scanner.next();
+				scanner.nextLine();
+
+				System.out.println("sold item       | sold date       | seller ID   | buyer ID   | price");
+				System.out.println("--------------------------------------------------------------------");
+
+				String description, buyer_id, seller_id;
+				long item_id;
+				int final_price;
+				try (PreparedStatement p = conn.prepareStatement(
+					"SELECT item_id, description " +
+					"FROM items NATURAL JOIN auctions " +
+					"WHERE status = 'SOLD' AND category = ?"
+				)) {
+					p.setString(1, category);
+
+					try (ResultSet item_rset = p.executeQuery()) {
+						while (item_rset.next()) {
+							item_id = item_rset.getLong("item_id");
+							description = item_rset.getString("description");
+
+							try (PreparedStatement pStmt = conn.prepareStatement(
+								"SELECT buyer_id, seller_id, final_price, transaction_time " +
+								"FROM billings " +
+								"WHERE item_id = ?"
+							)) {
+								pStmt.setLong(1, item_id);
+
+								try (ResultSet rset = pStmt.executeQuery()) {
+									if (!rset.next()) throw new SQLException();
+
+									buyer_id = rset.getString("buyer_id");
+									seller_id = rset.getString("seller_id");
+									final_price = rset.getInt("final_price");
+									dateTime = rset.getTimestamp("transaction_time").toLocalDateTime();
+								}
+							}
+
+							System.out.println(
+								description + " | " +
+								dateTime.format(formatter) + " | " +
+								seller_id + " | " +
+								buyer_id + " | " +
+								final_price
+							);
+						}
+					}
+				} catch (SQLException e) {
+					System.out.println("SQLException : " + e);
+					return;
+				}
+				System.out.println();
+			} else if (choice == '2') {
+				/* TODO: Print Account Balance for Seller */
+				handleAuctionClosure(); // 경매 마감 확인
+
+				System.out.println("---- Enter Seller ID to search : ");
+				seller = scanner.next();
+				scanner.nextLine();
+
+				System.out.println("sold item       | sold date       | buyer ID   | price");
+				System.out.println("------------------------------------------------------");
+
+				String description, buyer_id;
+				int final_price;
+				try (PreparedStatement pStmt = conn.prepareStatement(
+					"SELECT description, buyer_id, final_price, transaction_time " +
+					"FROM items NATURAL JOIN billings " +
+					"WHERE seller_id = ?"
+				)) {
+					pStmt.setString(1, seller);
+
+					try (ResultSet rset = pStmt.executeQuery()) {
+						while (rset.next()) {
+							description = rset.getString("description");
+							buyer_id = rset.getString("buyer_id");
+							final_price = rset.getInt("final_price");
+							dateTime = rset.getTimestamp("transaction_time").toLocalDateTime();
+
+							System.out.println(
+								description + " | " +
+								dateTime.format(formatter) + " | " +
+								buyer_id + " | " +
+								final_price
+							);
+						}
+					}
+				} catch (SQLException e) {
+					System.out.println("SQLException : " + e);
+					return;
+				}
+				System.out.println();
+			} else if (choice == '3') {
+				/* TODO: Print Seller Ranking */
+				handleAuctionClosure(); // 경매 마감 확인
+
+				System.out.println("seller ID   | # of items sold | Total Profit");
+				System.out.println("--------------------------------------------");
+
+				String seller_id;
+				long item_num, total_profit;
+				try (PreparedStatement pStmt = conn.prepareStatement(
+					"SELECT seller_id, COUNT(*) AS item_num, SUM(final_price) AS total_profit " +
+					"FROM billings " +
+					"GROUP BY seller_id"
+				)) {
+					try (ResultSet rset = pStmt.executeQuery()) {
+						while (rset.next()) {
+							seller_id = rset.getString("seller_id");
+							item_num = rset.getLong("item_num");
+							total_profit = rset.getLong("total_profit");
+
+							System.out.println(
+								seller_id + " | " +
+								item_num + " | " +
+								total_profit + " | "
+							);
+						}
+					}
+				} catch (SQLException e) {
+					System.out.println("SQLException : " + e);
+					return;
+				}
+				System.out.println();
+			} else if (choice == '4') {
+				/* TODO: Print Buyer Ranking */
+				handleAuctionClosure(); // 경매 마감 확인
+
+				System.out.println("buyer ID   | # of items purchased | Total Money Spent");
+				System.out.println("-----------------------------------------------------");
+
+				String buyer_id;
+				long item_num, total_spent;
+				try (PreparedStatement pStmt = conn.prepareStatement(
+					"SELECT buyer_id, COUNT(*) AS item_num, SUM(final_price) AS total_spent " +
+					"FROM billings " +
+					"GROUP BY buyer_id"
+				)) {
+					try (ResultSet rset = pStmt.executeQuery()) {
+						while (rset.next()) {
+							buyer_id = rset.getString("buyer_id");
+							item_num = rset.getLong("item_num");
+							total_spent = rset.getLong("total_spent");
+
+							System.out.println(
+								buyer_id + " | " +
+								item_num + " | " +
+								total_spent + " | "
+							);
+						}
+					}
+				} catch (SQLException e) {
+					System.out.println("SQLException : " + e);
+					return;
+				}
+				System.out.println();
+			} else if (choice == 'P' || choice == 'p') {
+				System.out.println();
+				return;
+			} else
+				System.out.println("Error: Invalid input is entered. Try again.\n");
+		} while (true);
+	}
+
 	private static void SellMenu() {
 		Category category = null;
 		Condition condition = null;
