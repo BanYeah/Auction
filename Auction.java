@@ -25,6 +25,110 @@ public class Auction {
 		ACCEPTABLE
 	}
 
+	private static void handleAuctionClosure() {
+		/* 입찰 시간이 종료(즉, 경매 마감)되었지만, 경매 상태가 변경되지 않은 경매를 처리  */
+		// 1. 경매가 마감되었지만, 경매 상태가 'LISTED'거나 'BIDDING'인 경매 선택
+		// 2. 경매 상태를 각각 'LISTED'인 경우 'EXPIRED'로, 'BIDDING'인 경우 'SOLD'로 변경
+		// 3. 경매 상태를 'SOLD'로 변경한 경우, 최고가 입찰자의 상태('ACTIVE')를 'WON'으로 변경
+		// 4.                               청구서 작성
+		String status, statement, seller_id, bidder_id;
+		long auction_id, item_id, bid_id;
+		int bid_price;
+		try {
+			conn.setAutoCommit(false);
+
+			try (PreparedStatement p = conn.prepareStatement(
+				"SELECT auction_id, item_id, bid_end_time, status " +
+				"FROM auctions " +
+				"WHERE bid_end_time < CURRENT_TIMESTAMP AND (status = 'LISTED' OR status = 'BIDDING')"
+			)) {
+				try (ResultSet auction_rset = p.executeQuery()) {
+					while (auction_rset.next()) {
+						auction_id = auction_rset.getLong("auction_id");
+						item_id = auction_rset.getLong("item_id");
+						status = auction_rset.getString("status");
+						if (status.equals("LISTED"))
+							statement = "UPDATE auctions SET status = 'EXPIRED' WHERE auction_id = ?";
+						else // 'BIDDING'
+							statement = "UPDATE auctions SET status = 'SOLD' WHERE auction_id = ?";
+
+						try (PreparedStatement pStmt = conn.prepareStatement(statement)) {
+							pStmt.setLong(1, auction_id);
+							if (pStmt.executeUpdate() == 0) throw new SQLException();
+						}
+
+						if (status.equals("LISTED")) continue;
+
+						// 최고가 입찰자의 입찰서
+						try (PreparedStatement pStmt = conn.prepareStatement(
+							"SELECT bid_id, bidder_id, bid_price " +
+							"FROM bids " +
+							"WHERE auction_id = ? " +
+							"ORDER BY bid_price DESC, bid_time ASC " +
+							"LIMIT 1"
+						)) {
+							pStmt.setLong(1, auction_id);
+
+							try (ResultSet bid_rset = pStmt.executeQuery()) {
+								if (!bid_rset.next()) throw new SQLException();
+
+								bid_id = bid_rset.getLong("bid_id");
+								bidder_id = bid_rset.getString("bidder_id");
+								bid_price = bid_rset.getInt("bid_price");
+							}
+						}
+
+						try (PreparedStatement pStmt = conn.prepareStatement(
+							"UPDATE bids SET bid_status = 'WON' WHERE bid_id = ?"
+						)) {
+							pStmt.setLong(1, bid_id);
+							if (pStmt.executeUpdate() == 0) throw new SQLException();
+						}
+
+						try (PreparedStatement pStmt = conn.prepareStatement(
+							"SELECT seller_id FROM items WHERE item_id = ?"
+						)) {
+							pStmt.setLong(1, item_id);
+
+							try (ResultSet item_ret = pStmt.executeQuery()) {
+								item_ret.next();
+								seller_id = item_ret.getString("seller_id");
+							}
+						}
+
+						// 청구서 작성
+						try (PreparedStatement pStmt = conn.prepareStatement(
+							"INSERT INTO billing (item_id, buyer_id, seller_id, final_price, transaction_time) " +
+							"VALUES (?, ?, ?, ?, ?)"
+						)) {
+							pStmt.setLong(1, item_id);
+							pStmt.setString(2, bidder_id);
+							pStmt.setString(3, seller_id);
+							pStmt.setInt(4, bid_price);
+							pStmt.setTimestamp(5, auction_rset.getTimestamp("bid_end_time"));
+
+							if (pStmt.executeUpdate() == 0) throw new SQLException();
+						}
+						conn.commit();
+					}
+				}
+			}
+		} catch (SQLException e) {
+			System.out.println("SQLException : " + e);
+			try {
+				conn.rollback();
+			} catch (SQLException rollbackEx) {
+				System.out.println(rollbackEx.getMessage());
+			}
+		} finally {
+			try {
+				conn.setAutoCommit(true);
+			} catch (SQLException ex) {
+				System.out.println(ex.getMessage());
+			}
+		}
+	}
+
 	private static void LoginMenu() {
 		String userpass;
 		System.out.print(
