@@ -1,15 +1,12 @@
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.ResultSet;
-import java.sql.DriverManager;
+import java.sql.*;
+import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.text. *;
 import java.util. *;
 
 public class Auction {
-	private static Scanner scanner = new Scanner(System.in);
+	private static final Scanner scanner = new Scanner(System.in);
 	private static String username;
 	private static Connection conn;
 
@@ -28,39 +25,44 @@ public class Auction {
 		ACCEPTABLE
 	}
 
-	private static boolean LoginMenu() {
-		String userpass, isAdmin;
+	private static void LoginMenu() {
+		String userpass;
+		System.out.print(
+			"----< User Login > \n" +
+			" ** To go back, enter 'back' in user ID. \n" +
+			"     user ID: "
+			);
 
-		System.out.print("----< User Login >\n" +
-				" ** To go back, enter 'back' in user ID.\n" +
-				"     user ID: ");
-		try{
-			username = scanner.next();
-			scanner.nextLine();
+		username = scanner.next();
+		scanner.nextLine();
+		if(username.equalsIgnoreCase("back"))
+			return;
 
-			if(username.equalsIgnoreCase("back")){
-				return false;
+		System.out.print("     password: ");
+		userpass = scanner.next();
+		scanner.nextLine();
+
+		/* TODO: Your code should come here to check ID and password */
+		try (PreparedStatement pStmt = conn.prepareStatement(
+			"SELECT 1 " +
+			"FROM users " +
+			"WHERE user_id = ? AND password = ?"
+		)) {
+			pStmt.setString(1, username);
+			pStmt.setString(2, userpass);
+
+			try (ResultSet rset = pStmt.executeQuery()) {
+				if (!rset.next()) throw new SQLException();
 			}
-
-			System.out.print("     password: ");
-			userpass = scanner.next();
-			scanner.nextLine();
-		}catch (java.util.InputMismatchException e) {
-			System.out.println("Error: Invalid input is entered. Try again.");
+		} catch (SQLException e) {
+			System.out.println("Error: Incorrect user name or password\n");
 			username = null;
-			return false;
-		}
-
-		/* Your code should come here to check ID and password */ 
-
-		if (false) {  
-			/* If Login Fails */
-			System.out.println("Error: Incorrect user name or password");
-			return false; 
+			return;
 		}
 
 		System.out.println("You are successfully logged in.\n");
-		return true;
+	}
+
 	private static void SignupMenu() {
 		boolean is_admin;
 		String new_username, userpass, isAdmin;
