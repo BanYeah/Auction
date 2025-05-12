@@ -61,6 +61,52 @@ public class Auction {
 
 		System.out.println("You are successfully logged in.\n");
 		return true;
+	private static void SignupMenu() {
+		boolean is_admin;
+		String new_username, userpass, isAdmin;
+		System.out.print(
+			"----< Sign Up >\n" +
+			" ** To go back, enter 'back' in user ID.\n" +
+			"---- user name: "
+			);
+
+		try {
+			new_username = scanner.next();
+			scanner.nextLine();
+			if (new_username.equalsIgnoreCase("back"))
+				return;
+
+			System.out.print("---- password: ");
+			userpass = scanner.next();
+			scanner.nextLine();
+
+			System.out.print("---- In this user an administrator? (Y/N): ");
+			isAdmin = scanner.next();
+			scanner.nextLine();
+			if (isAdmin.equalsIgnoreCase("Y") || isAdmin.equalsIgnoreCase("YES"))
+				is_admin = true;
+			else if (isAdmin.equalsIgnoreCase("N") || isAdmin.equalsIgnoreCase("NO"))
+				is_admin = false;
+			else throw new InputMismatchException();
+		} catch (java.util.InputMismatchException e) {
+			System.out.println("Error: Invalid input is entered. Please select again.\n");
+			return;
+		}
+
+		/* TODO: Your code should come here to create a user account in your database */
+        try (PreparedStatement pStmt = conn.prepareStatement(
+			"INSERT INTO users VALUES(?, ?, ?)"
+		)) {
+			pStmt.setString(1, new_username);
+			pStmt.setString(2, userpass);
+			pStmt.setBoolean(3, is_admin);
+
+			if (pStmt.executeUpdate() == 0) throw new SQLException();
+        } catch (SQLException e) {
+			System.out.println("Error: Sign up failed. Please select again.\n");
+			return;
+        }
+        System.out.println("Your account has been successfully created.\n");
 	}
 
 	private static boolean SellMenu() {
@@ -530,55 +576,49 @@ public class Auction {
 	}
 
 	public static void main(String[] args) {
-		char choice;
-		boolean ret;
-
-		if(args.length<2){
+		if (args.length < 2) {
 			System.out.println("Usage: java Auction postgres_id password");
 			System.exit(1);
 		}
 
-
-		try{
-                	conn = DriverManager.getConnection("jdbc:postgresql://localhost/"+args[0], args[0], args[1]); 
-            //          conn = DriverManager.getConnection("jdbc:postgresql://localhost/bnam", "bnam", "changethis"); 
-		}
-		catch(SQLException e){
-			System.out.println("SQLException : " + e);	
+		try {
+			conn = DriverManager.getConnection("jdbc:postgresql://localhost/" + args[0], args[0], args[1]);
+		} catch (SQLException e) {
+			System.out.println("SQLException : " + e); // 연결 실패
 			System.exit(1);
 		}
 
+		char choice;
 		do {
 			username = null;
 			System.out.println(
-					"----< Login menu >\n" + 
-					"----(1) Login\n" +
-					"----(2) Sign up\n" +
-					"----(3) Login as Administrator\n" +
-					"----(Q) Quit"
-					);
+				"----< Login menu > \n" +
+				"----(1) Login \n" +
+				"----(2) Sign up \n" +
+				"----(3) Login as Administrator \n" +
+				"----(Q) Quit"
+			);
 
 			try {
-				choice = scanner.next().charAt(0);;
+				choice = scanner.next().charAt(0);
 				scanner.nextLine();
 			} catch (java.util.InputMismatchException e) {
-				System.out.println("Error: Invalid input is entered. Try again.");
+				System.out.println("Error: Invalid input is entered. Try again.\n");
 				continue;
 			}
+			System.out.println();
 
 			try {
 				switch ((int) choice) {
 					case '1':
-						ret = LoginMenu();
-						if(!ret) continue;
+						LoginMenu();
 						break;
 					case '2':
-						ret = SignupMenu();
-						if(!ret) continue;
-						break;
+						SignupMenu();
+						continue;
 					case '3':
-						ret = AdminMenu();
-						if(!ret) continue;
+						AdminMenu();
+						continue;
 					case 'q':
 					case 'Q':
 						System.out.println("Good Bye");
@@ -586,65 +626,66 @@ public class Auction {
 						conn.close();
 						System.exit(1);
 					default:
-						System.out.println("Error: Invalid input is entered. Try again.");
+						System.out.println("Error: Invalid input is entered. Try again.\n");
 				}
 			} catch (SQLException e) {
 				System.out.println("SQLException : " + e);	
 			}
-		} while (username==null || username.equalsIgnoreCase("back"));  
+		} while (username == null || username.equalsIgnoreCase("back"));
 
 		// logged in as a normal user 
 		do {
 			System.out.println(
-					"---< Main menu > :\n" +
-					"----(1) Sell Item\n" +
-					"----(2) Check Status of Your Listed Item \n" +
-					"----(3) Buy Item\n" +
-					"----(4) Check Status of your Bid \n" +
-					"----(5) Check your Account \n" +
-					"----(Q) Quit"
-					);
+				"---< Main menu > : \n" +
+				"----(1) Sell Item \n" +
+				"----(2) Check Status of Your Listed Item \n" +
+				"----(3) Buy Item \n" +
+				"----(4) Check Status of your Bid \n" +
+				"----(5) Check your Account \n" +
+				"----(Q) Quit"
+			);
 
 			try {
 				choice = scanner.next().charAt(0);;
 				scanner.nextLine();
 			} catch (java.util.InputMismatchException e) {
-				System.out.println("Error: Invalid input is entered. Try again.");
+				System.out.println("Error: Invalid input is entered. Try again.\n");
 				continue;
 			}
+			System.out.println();
 
-			try{
+			try {
 				switch (choice) {
 					case '1':
-						ret = SellMenu();
-						if(!ret) continue;
-						break;
+						SellMenu();
+						continue;
 					case '2':
 						CheckSellStatus();
-						break;
+						continue;
 					case '3':
-						ret = BuyItem();
-						if(!ret) continue;
-						break;
+						BuyItem();
+						continue;
 					case '4':
 						CheckBuyStatus();
-						break;
+						continue;
 					case '5':
 						CheckAccount();
-						break;
+						continue;
 					case 'q':
 					case 'Q':
 						System.out.println("Good Bye");
 						/* TODO: close the connection and clean up everything here */
 						conn.close();
 						System.exit(1);
+					default:
+						System.out.println("Error: Invalid input is entered. Try again.\n");
 				}
 			} catch (SQLException e) {
-				System.out.println("SQLException : " + e);	
+				System.out.println("SQLException : " + e);
 				System.exit(1);
 			}
-		} while(true);
-	} // End of main 
+		} while (true);
+	} // End of main
 } // End of class
 
 
