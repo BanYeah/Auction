@@ -116,79 +116,84 @@ public class Auction {
 		Condition condition;
 		char choice;
 		int price;
-		boolean flag_catg = true, flag_cond = true;
+	private static void SellMenu() {
+		Category category = null;
+		Condition condition = null;
+		LocalDateTime dateTime;
+		String description;
+		int start_price, BIN_price;
 
-		do{
+		char choice;
+		boolean flag_catg = true, flag_cond = true;
+		do {
 			System.out.println(
-					"----< Sell Item >\n" +
-					"---- Choose a category.\n" +
-					"    1. Electronics\n" +
-					"    2. Books\n" +
-					"    3. Home\n" +
-					"    4. Clothing\n" +
-					"    5. Sporting Goods\n" +
-					"    6. Other Categories\n" +
-					"    P. Go Back to Previous Menu"
-					);
+				"----< Sell Item >\n" +
+				"---- Choose a category.\n" +
+				"    1. Electronics\n" +
+				"    2. Books\n" +
+				"    3. Home\n" +
+				"    4. Clothing\n" +
+				"    5. Sporting Goods\n" +
+				"    6. Other Categories\n" +
+				"    P. Go Back to Previous Menu"
+			);
 
 			try {
-				choice = scanner.next().charAt(0);;
-			}catch (java.util.InputMismatchException e) {
-				System.out.println("Error: Invalid input is entered. Try again.");
+				choice = scanner.next().charAt(0);
+			} catch (java.util.InputMismatchException e) {
+				System.out.println("Error: Invalid input is entered. Try again.\n");
 				continue;
 			}
 
 			flag_catg = true;
-
-			switch ((int) choice){
+			switch ((int) choice) {
 				case '1':
 					category = Category.ELECTRONICS;
-					continue;
+					break;
 				case '2':
 					category = Category.BOOKS;
-					continue;
+					break;
 				case '3':
 					category = Category.HOME;
-					continue;
+					break;
 				case '4':
 					category = Category.CLOTHING;
-					continue;
+					break;
 				case '5':
 					category = Category.SPORTINGGOODS;
-					continue;
+					break;
 				case '6':
 					category = Category.OTHERS;
-					continue;
+					break;
 				case 'p':
 				case 'P':
-					return false;
+					return;
 				default:
-					System.out.println("Error: Invalid input is entered. Try again.");
+					System.out.println("Error: Invalid input is entered. Try again.\n");
 					flag_catg = false;
-					continue;
 			}
-		}while(!flag_catg);
+		} while (!flag_catg);
+		System.out.println();
 
-		do{
+		do {
 			System.out.println(
-					"---- Select the condition of the item to sell.\n" +
-					"   1. New\n" +
-					"   2. Like-new\n" +
-					"   3. Used (Good)\n" +
-					"   4. Used (Acceptable)\n" +
-					"   P. Go Back to Previous Menu"
-					);
+				"---- Select the condition of the item to sell.\n" +
+				"   1. New\n" +
+				"   2. Like-new\n" +
+				"   3. Used (Good)\n" +
+				"   4. Used (Acceptable)\n" +
+				"   P. Go Back to Previous Menu"
+			);
 
 			try {
-				choice = scanner.next().charAt(0);;
+				choice = scanner.next().charAt(0);
 				scanner.nextLine();
-			}catch (java.util.InputMismatchException e) {
-				System.out.println("Error: Invalid input is entered. Try again.");
+			} catch (java.util.InputMismatchException e) {
+				System.out.println("Error: Invalid input is entered. Try again.\n");
 				continue;
 			}
 
 			flag_cond = true;
-
 			switch (choice) {
 				case '1':
 					condition = Condition.NEW;
@@ -204,169 +209,108 @@ public class Auction {
 					break;
 				case 'p':
 				case 'P':
-					return false;
+					return;
 				default:
-					System.out.println("Error: Invalid input is entered. Try again.");
+					System.out.println("Error: Invalid input is entered. Try again.\n");
 					flag_cond = false;
-					continue;
 			}
-		}while(!flag_cond);
+		} while (!flag_cond);
+		System.out.println();
 
 		try {
 			System.out.println("---- Description of the item (one line): ");
-			String description = scanner.nextLine();
-			System.out.println("---- Buy-It-Now price: ");
+			description = scanner.nextLine();
 
+			System.out.println("---- Starting price: ");
+			while (!scanner.hasNextInt()) {
+				scanner.next();
+				System.out.println("Invalid input is entered. Please enter Starting price: ");
+			}
+			start_price = scanner.nextInt();
+			scanner.nextLine();
+
+			System.out.println("---- Buy-It-Now price: ");
 			while (!scanner.hasNextInt()) {
 				scanner.next();
 				System.out.println("Invalid input is entered. Please enter Buy-It-Now price: ");
 			}
-
-			price = scanner.nextInt();
+			BIN_price = scanner.nextInt();
 			scanner.nextLine();
 
 			System.out.print("---- Bid closing date and time (YYYY-MM-DD HH:MM): ");
 			// you may assume users always enter valid date/time
-			String date = scanner.nextLine();  /* "2023-03-04 11:30"; */
+			String date = scanner.nextLine();  // "2023-03-04 11:30"
 			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-			LocalDateTime dateTime = LocalDateTime.parse(date, formatter);
-		}catch (Exception e) {
-			System.out.println("Error: Invalid input is entered. Going back to the previous menu.");
-			return false;
+			dateTime = LocalDateTime.parse(date, formatter);
+		} catch (Exception e) {
+			System.out.println("Error: Invalid input is entered. Going back to the previous menu.\n");
+			return;
 		}
 
 		/* TODO: Your code should come here to store the user inputs in your database */
+		long item_id, auction_id;
+		try {
+			conn.setAutoCommit(false);
+
+			try (PreparedStatement pStmt = conn.prepareStatement(
+				"INSERT INTO items (category, description, condition, seller_id, auction_id) VALUES (?, ?, ?, ?, NULL)",
+				Statement.RETURN_GENERATED_KEYS  // for auto-generated item_id
+			)) {
+				pStmt.setString(1, category.name());
+				pStmt.setString(2, description);
+				pStmt.setString(3, condition.name());
+				pStmt.setString(4, username);
+				pStmt.executeUpdate();
+
+				try (ResultSet rset = pStmt.getGeneratedKeys()) {
+					if (rset.next()) item_id = rset.getLong(1);
+					else throw new SQLException();
+				}
+			}
+
+			try (PreparedStatement pStmt = conn.prepareStatement(
+				"INSERT INTO auctions (item_id, starting_price, current_price, buy_it_now_price, bid_end_time) VALUES (?, ?, ?, ?, ?)",
+				Statement.RETURN_GENERATED_KEYS // for auto-generated item_id
+			)) {
+				pStmt.setLong(1, item_id);
+				pStmt.setInt(2, start_price);
+				pStmt.setInt(3, start_price);
+				pStmt.setInt(4, BIN_price);
+				pStmt.setTimestamp(5, Timestamp.valueOf(dateTime));
+				pStmt.executeUpdate();
+
+				try (ResultSet rset = pStmt.getGeneratedKeys()) {
+					if (rset.next()) auction_id = rset.getLong(1);
+					else throw new SQLException();
+				}
+			}
+
+			try (PreparedStatement pStmt = conn.prepareStatement(
+				"UPDATE items SET auction_id = ? WHERE item_id = ?"
+			)) {
+				pStmt.setLong(1, auction_id);
+				pStmt.setLong(2, item_id);
+				if (pStmt.executeUpdate() == 0) throw new SQLException();
+			}
+
+			conn.commit();
+		} catch (SQLException e) {
+			try {
+				conn.rollback();
+			} catch (SQLException rollbackEx) {
+				System.out.println(rollbackEx.getMessage());
+			}
+			System.out.println("Error: Sell item failed. Please select again.\n");
+			return;
+		} finally {
+			try {
+				conn.setAutoCommit(true);
+			} catch (SQLException ex) {
+				System.out.println(ex.getMessage());
+			}
+		}
 
 		System.out.println("Your item has been successfully listed.\n");
-		return true;
-	}
-
-	private static boolean SignupMenu() {
-		/* 2. Sign Up */
-		String new_username, userpass, isAdmin;
-		System.out.print("----< Sign Up >\n" + 
-				" ** To go back, enter 'back' in user ID.\n" +
-				"---- user name: ");
-		try {
-			new_username = scanner.next();
-			scanner.nextLine();
-			if(new_username.equalsIgnoreCase("back")){
-				return false;
-			}
-			System.out.print("---- password: ");
-			userpass = scanner.next();
-			scanner.nextLine();
-			System.out.print("---- In this user an administrator? (Y/N): ");
-			isAdmin = scanner.next();
-			scanner.nextLine();
-		} catch (java.util.InputMismatchException e) {
-			System.out.println("Error: Invalid input is entered. Please select again.");
-			return false;
-		}
-
-		/* TODO: Your code should come here to create a user account in your database */
-
-		System.out.println("Your account has been successfully created.\n");
-		return true;
-	}
-
-	private static boolean AdminMenu() {
-		/* 3. Login as Administrator */
-		char choice;
-		String adminname, adminpass;
-		String keyword, seller;
-		System.out.print("----< Login as Administrator >\n" +
-				" ** To go back, enter 'back' in user ID.\n" +
-				"---- admin ID: ");
-
-		try {
-			adminname = scanner.next();
-			scanner.nextLine();
-			if(adminname.equalsIgnoreCase("back")){
-				return false;
-			}
-			System.out.print("---- password: ");
-			adminpass = scanner.nextLine();
-			// TODO: check the admin's account and password.
-		} catch (java.util.InputMismatchException e) {
-			System.out.println("Error: Invalid input is entered. Try again.");
-			return false;
-		}
-
-		boolean login_success = true;
-
-		if(!login_success){
-			// login failed. go back to the previous menu.
-			return false;
-		}
-
-		do {
-			System.out.println(
-					"----< Admin menu > \n" +
-					"    1. Print Sold Items per Category \n" +
-					"    2. Print Account Balance for Seller \n" +
-					"    3. Print Seller Ranking \n" +
-					"    4. Print Buyer Ranking \n" +
-					"    P. Go Back to Previous Menu"
-					);
-
-			try {
-				choice = scanner.next().charAt(0);;
-				scanner.nextLine();
-			} catch (java.util.InputMismatchException e) {
-				System.out.println("Error: Invalid input is entered. Try again.");
-				continue;
-			}
-
-			if (choice == '1') {
-				System.out.println("----Enter Category to search : ");
-				keyword = scanner.next();
-				scanner.nextLine();
-				/*TODO: Print Sold Items per Category */
-				System.out.println("sold item       | sold date       | seller ID   | buyer ID   | price | commissions");
-				System.out.println("----------------------------------------------------------------------------------");
-				/*
-				   while(rset.next()){
-				   }
-				 */
-				continue;
-			} else if (choice == '2') {
-				/*TODO: Print Account Balance for Seller */
-				System.out.println("---- Enter Seller ID to search : ");
-				seller = scanner.next();
-				scanner.nextLine();
-				System.out.println("sold item       | sold date       | buyer ID   | price | commissions");
-				System.out.println("--------------------------------------------------------------------");
-				/*
-				   while(rset.next()){
-				   }
-				 */
-				continue;
-			} else if (choice == '3') {
-				/*TODO: Print Seller Ranking */
-				System.out.println("seller ID   | # of items sold | Total Profit (excluding commissions)");
-				System.out.println("--------------------------------------------------------------------");
-				/*
-				   while(rset.next()){
-				   }
-				 */
-				continue;
-			} else if (choice == '4') {
-				/*TODO: Print Buyer Ranking */
-				System.out.println("buyer ID   | # of items purchased | Total Money Spent ");
-				System.out.println("------------------------------------------------------");
-				/*
-				   while(rset.next()){
-				   }
-				 */
-				continue;
-			} else if (choice == 'P' || choice == 'p') {
-				return false;
-			} else {
-				System.out.println("Error: Invalid input is entered. Try again.");
-				continue;
-			}
-		} while(true);
 	}
 
 	public static void CheckSellStatus(){
