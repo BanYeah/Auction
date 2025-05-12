@@ -475,37 +475,36 @@ public class Auction {
 		}
 	}
 
-	public static boolean BuyItem(){
-		Category category;
-		Condition condition;
-		char choice;
-		int price;
+	public static void BuyItem() {
+		Category category = null;
+		Condition condition = null;
+		LocalDateTime date;
 		String keyword, seller, datePosted;
-		boolean flag_catg = true, flag_cond = true;
-		
-		do {
 
-			System.out.println( "----< Select category > : \n" +
-					"    1. Electronics\n"+
-					"    2. Books\n" + 
-					"    3. Home\n" + 
-					"    4. Clothing\n" + 
-					"    5. Sporting Goods\n" +
-					"    6. Other categories\n" +
-					"    7. Any category\n" +
-					"    P. Go Back to Previous Menu"
-					);
+		char choice;
+		boolean flag_catg = true, flag_cond = true;
+		do {
+			System.out.println(
+				"----< Select category > : \n" +
+				"    1. Electronics\n" +
+				"    2. Books\n" +
+				"    3. Home\n" +
+				"    4. Clothing\n" +
+				"    5. Sporting Goods\n" +
+				"    6. Other categories\n" +
+				"    7. Any category\n" +
+				"    P. Go Back to Previous Menu"
+				);
 
 			try {
-				choice = scanner.next().charAt(0);;
+				choice = scanner.next().charAt(0);
 				scanner.nextLine();
 			} catch (java.util.InputMismatchException e) {
-				System.out.println("Error: Invalid input is entered. Try again.");
-				return false;
+				System.out.println("Error: Invalid input is entered. Try again.\n");
+				return;
 			}
 
 			flag_catg = true;
-
 			switch (choice) {
 				case '1':
 					category = Category.ELECTRONICS;
@@ -525,38 +524,36 @@ public class Auction {
 				case '6':
 					category = Category.OTHERS;
 					break;
-				case '7':
+				case '7': // any category
 					break;
 				case 'p':
 				case 'P':
-					return false;
+					return;
 				default:
-					System.out.println("Error: Invalid input is entered. Try again.");
+					System.out.println("Error: Invalid input is entered. Try again.\n");
 					flag_catg = false;
-					continue;
 			}
-		} while(!flag_catg);
+		} while (!flag_catg);
 
 		do {
-
 			System.out.println(
-					"----< Select the condition > \n" +
-					"   1. New\n" +
-					"   2. Like-new\n" +
-					"   3. Used (Good)\n" +
-					"   4. Used (Acceptable)\n" +
-					"   P. Go Back to Previous Menu"
-					);
+				"----< Select the condition > \n" +
+				"   1. New\n" +
+				"   2. Like-new\n" +
+				"   3. Used (Good)\n" +
+				"   4. Used (Acceptable)\n" +
+				"   P. Go Back to Previous Menu"
+				);
+
 			try {
-				choice = scanner.next().charAt(0);;
+				choice = scanner.next().charAt(0);
 				scanner.nextLine();
 			} catch (java.util.InputMismatchException e) {
-				System.out.println("Error: Invalid input is entered. Try again.");
-				return false;
+				System.out.println("Error: Invalid input is entered. Try again.\n");
+				return;
 			}
 
 			flag_cond = true;
-
 			switch (choice) {
 				case '1':
 					condition = Condition.NEW;
@@ -572,32 +569,29 @@ public class Auction {
 					break;
 				case 'p':
 				case 'P':
-					return false;
+					return;
 				default:
-					System.out.println("Error: Invalid input is entered. Try again.");
+					System.out.println("Error: Invalid input is entered. Try again.\n");
 					flag_cond = false;
-					continue;
-				}
-		} while(!flag_cond);
+			}
+		} while (!flag_cond);
 
-		try {
-			System.out.println("---- Enter keyword to search the description : ");
-			keyword = scanner.next();
-			scanner.nextLine();
+		System.out.println("---- Enter keyword to search the description : ");
+		keyword = scanner.next();
+		scanner.nextLine();
 
-			System.out.println("---- Enter Seller ID to search : ");
-			System.out.println(" ** Enter 'any' if you want to see items from any seller. ");
-			seller = scanner.next();
-			scanner.nextLine();
+		System.out.println("---- Enter Seller ID to search : ");
+		System.out.println(" ** Enter 'any' if you want to see items from any seller. ");
+		seller = scanner.next();
+		scanner.nextLine();
 
-			System.out.println("---- Enter date posted (YYYY-MM-DD): ");
-			System.out.println(" ** This will search items that have been posted after the designated date.");
-			datePosted = scanner.next();
-			scanner.nextLine();
-		} catch (java.util.InputMismatchException e) {
-			System.out.println("Error: Invalid input is entered. Try again.");
-			return false;
-		}
+		System.out.println("---- Enter date posted (YYYY-MM-DD): ");
+		System.out.println(" ** This will search items that have been posted after the designated date.");
+		datePosted = scanner.next();
+		scanner.nextLine();
+		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+		date = LocalDate.parse(datePosted, formatter).atStartOfDay();
+
 
 		/* TODO: Query condition: item category */
 		/* TODO: Query condition: item condition */
@@ -606,36 +600,238 @@ public class Auction {
 		/* TODO: Query condition: posted date of item */
 
 		/* TODO: List all items that match the query condition */
+		handleAuctionClosure(); // 경매 마감 확인
+
 		System.out.println("Item ID | Item description | Condition | Seller | Buy-It-Now | Current Bid | highest bidder | Time left | bid close");
-		System.out.println("-------------------------------------------------------------------------------------------------------");
-		/* 
-		   while(rset.next()){ 
-		   }
-		 */
+		System.out.println("-------------------------------------------------------------------------------------------------------------------");
+
+		boolean any_category = false, any_seller = false;
+		if (category == null)
+			any_category = true;
+		if (seller.equalsIgnoreCase("any"))
+			any_seller = true;
+
+		Timestamp bid_end_time;
+		String description, seller_id, highest_bidder_id;
+		long item_id, auction_id;
+		int BIN_price, current_price;
+		try (PreparedStatement p = conn.prepareStatement(
+			"SELECT item_id, auction_id, description, seller_id, current_price, buy_it_now_price, bid_end_time " +
+			"FROM items NATURAL JOIN auctions " +
+			"WHERE condition = ? AND description LIKE ? AND bid_start_time > ? AND " +
+				"(status = 'LISTED' OR status = 'BIDDING') " +
+				(any_category ? "" : "category = ? ") +
+				(any_seller ? "" : "seller_id = ?")
+		)) {
+			p.setString(1, condition.name());
+			p.setString(2, "%" + keyword + "%");
+			p.setTimestamp(3, Timestamp.valueOf(date));
+			if (!any_category) p.setString(4, category.name());
+			if (any_category && !any_seller) p.setString(4, seller);
+			else if (!any_seller) p.setString(5, seller);
+
+			try (ResultSet item_rset = p.executeQuery()) {
+				while (item_rset.next()) {
+					item_id = item_rset.getLong("item_id");
+					auction_id = item_rset.getLong("auction_id");
+					description = item_rset.getString("description");
+					seller_id = item_rset.getString("seller_id");
+					current_price = item_rset.getInt("current_price");
+					BIN_price = item_rset.getInt("buy_it_now_price");
+					bid_end_time = item_rset.getTimestamp("bid_end_time");
+
+					System.out.print(
+						item_id + " | " +
+						description + " | " +
+						condition.name() + " | " +
+						seller_id + " | " +
+						BIN_price + " | " +
+						current_price + " | "
+					);
+
+					try (PreparedStatement pStmt = conn.prepareStatement(
+						"SELECT bidder_id " +
+						"FROM bids " +
+						"WHERE auction_id = ? " +
+						"ORDER BY bid_price DESC, bid_time ASC " +
+						"LIMIT 1"
+					)) {
+						pStmt.setLong(1, auction_id);
+
+						try (ResultSet rset = pStmt.executeQuery()) {
+							if (!rset.next())
+								System.out.print(" | ");
+							else {
+								highest_bidder_id = rset.getString("bidder_id");
+								System.out.print(highest_bidder_id + " | ");
+							}
+						}
+					}
+
+					formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+					LocalDateTime dateTime = bid_end_time.toLocalDateTime();
+					LocalDateTime now = LocalDateTime.now();
+
+					Duration duration = Duration.between(now, dateTime);
+					long totalMinutes = duration.toMinutes();
+					long days = totalMinutes / (24 * 60);
+					long hours = (totalMinutes % (24 * 60)) / 60;
+					long minutes = totalMinutes % 60;
+
+					StringBuilder timeLeft = new StringBuilder();
+					if (days > 0) timeLeft.append(days).append("d ");
+					if (hours > 0 || days > 0) timeLeft.append(hours).append("h ");
+					timeLeft.append(minutes).append("m");
+
+					System.out.println(
+						timeLeft.toString().trim() + " | " +
+						dateTime.format(formatter)
+					);
+				}
+			}
+		} catch (SQLException e) {
+			System.out.println("SQLException : " + e);
+		}
+		System.out.println();
 
 		System.out.println("---- Select Item ID to buy or bid: ");
 
+		int price;
 		try {
-			choice = scanner.next().charAt(0);;
+			item_id = scanner.nextLong();
 			scanner.nextLine();
+
 			System.out.println("     Price: ");
 			price = scanner.nextInt();
 			scanner.nextLine();
 		} catch (java.util.InputMismatchException e) {
-			System.out.println("Error: Invalid input is entered. Try again.");
-			return false;
+			System.out.println("Error: Invalid input is entered. Try again.\n");
+			return;
 		}
 
 		/* TODO: Buy-it-now or bid: If the entered price is higher or equal to Buy-It-Now price, the bid ends and the following needs to be printed. */
-		/* Even if the bid price is higher than the Buy-It-Now price, the buyer pays the B-I-N price. */
-		System.out.println("Thank you for the purchase.\n"); 
+		handleAuctionClosure(); // 경매 마감 확인
+
+		String status;
+		try (PreparedStatement pStmt = conn.prepareStatement(
+			"SELECT seller_id, auction_id, current_price, buy_it_now_price, status " +
+			"FROM items NATURAL JOIN auctions " +
+			"WHERE item_id = ?"
+		)) {
+			pStmt.setLong(1, item_id);
+
+			try (ResultSet rset = pStmt.executeQuery()) {
+				if (!rset.next()) {
+					System.out.println("Error: Incorrect Item ID\n");
+					return;
+				}
+
+				seller_id = rset.getString("seller_id");
+				auction_id = rset.getLong("auction_id");
+				current_price = rset.getInt("current_price");
+				BIN_price = rset.getInt("buy_it_now_price");
+				status = rset.getString("status");
+			}
+		} catch (SQLException e) {
+			System.out.println("SQLException : " + e);
+			return;
+		}
+
+		/* If the bid is ended, print out the following. */
+		if (status.equals("SOLD") || status.equals("EXPIRED")) {
+			System.out.println("Bid ended.\n");
+			return;
+		}
 
 		/* If the entered price is lower than the current highest price, print out the following. */
-		System.out.println("You must bid higher than the current price. \n"); 
+		else if (price <= current_price) {
+			System.out.println("You must bid higher than the current price.\n");
+			return;
+		}
 
-                /* Otherwise, print the following */
-		System.out.println("Congratulations, you are the highest bidder.\n"); 
-		return true;
+		// 해당 경매에 해당하는 모든 입찰서의 상태를 'OUTBID'로 변경
+		try (PreparedStatement pStmt = conn.prepareStatement(
+			"UPDATE bids SET bid_status = 'OUTBID' WHERE auction_id = ?"
+		)) {
+			pStmt.setLong(1, auction_id);
+			pStmt.executeUpdate();
+		} catch (SQLException e) {
+			System.out.println("SQLException : " + e);
+			return;
+		}
+
+		// 기존 입찰서 제거
+		try (PreparedStatement pStmt = conn.prepareStatement(
+			"DELETE FROM bids WHERE auction_id = ? AND bidder_id = ?"
+		)) {
+			pStmt.setLong(1, auction_id);
+			pStmt.setString(2, username);
+			pStmt.executeUpdate();
+		} catch (SQLException e) {
+			System.out.println("SQLException : " + e);
+			return;
+		}
+
+		// 새 입찰서 작성
+		try (PreparedStatement pStmt = conn.prepareStatement(
+			"INSERT INTO bids(bidder_id, auction_id, bid_price) VALUES (?, ?, ?)"
+		)) {
+			pStmt.setString(1, username);
+			pStmt.setLong(2, auction_id);
+			pStmt.setInt(3, price);
+			if (pStmt.executeUpdate() == 0) throw new SQLException();
+		} catch (SQLException e) {
+			System.out.println("SQLException : " + e);
+			return;
+		}
+
+		/* If the bid price is higher than the Buy-It-Now price, the buyer pays the B-I-N price. */
+		if (price >= BIN_price) {
+			// 경매에서 현재 가격과 경매 상태 변경
+			try (PreparedStatement pStmt = conn.prepareStatement(
+					"UPDATE auctions SET current_price = ?, status = 'SOLD' WHERE auction_id = ?"
+			)) {
+				pStmt.setInt(1, price);
+				pStmt.setLong(2, auction_id);
+				if (pStmt.executeUpdate() == 0) throw new SQLException();
+			} catch (SQLException e) {
+				System.out.println("SQLException : " + e);
+				return;
+			}
+
+			// 청구서 작성
+			try (PreparedStatement pStmt = conn.prepareStatement(
+				"INSERT INTO billings(item_id, buyer_id, seller_id, final_price) VALUES (?, ?, ?, ?)"
+			)) {
+				pStmt.setLong(1, item_id);
+				pStmt.setString(2, username);
+				pStmt.setString(3, seller_id);
+				pStmt.setInt(4, price);
+				if (pStmt.executeUpdate() == 0) throw new SQLException();
+			} catch (SQLException e) {
+				System.out.println("SQLException : " + e);
+				return;
+			}
+
+			System.out.println("Thank you for the purchase.\n");
+		}
+
+		/* Otherwise, print the following */
+		else {
+			// 경매에서 현재 가격과 경매 상태 변경
+			try (PreparedStatement pStmt = conn.prepareStatement(
+				"UPDATE auctions SET current_price = ?, status = 'BIDDING' WHERE auction_id = ?"
+			)) {
+				pStmt.setInt(1, price);
+				pStmt.setLong(2, auction_id);
+				if (pStmt.executeUpdate() == 0) throw new SQLException();
+			} catch (SQLException e) {
+				System.out.println("SQLException : " + e);
+				return;
+			}
+
+			System.out.println("Congratulations, you are the highest bidder.\n");
+		}
 	}
 
 	public static void CheckBuyStatus(){
