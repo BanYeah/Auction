@@ -834,37 +834,138 @@ public class Auction {
 		}
 	}
 
-	public static void CheckBuyStatus(){
+	public static void CheckBuyStatus() {
 		/* TODO: Check the status of the item the current buyer is bidding on */
 		/* Even if you are outbidded or the bid closing date has passed, all the items this user has bidded on must be displayed */
+		handleAuctionClosure(); // 경매 마감 확인
 
 		System.out.println("item ID   | item description   | highest bidder | highest bidding price | your bidding price | bid closing date/time");
 		System.out.println("--------------------------------------------------------------------------------------------------------------------");
-		/*
-		   while(rset.next(){
-		   System.out.println();
-		   }
-		 */
+
+		Timestamp bid_end_time;
+		String description, highest_bidder_id;
+		int highest_bid_price, bid_price;
+		long auction_id, item_id;
+		try (PreparedStatement p = conn.prepareStatement(
+			"SELECT auction_id, bid_price FROM bids WHERE bidder_id = ?"
+		)) {
+			p.setString(1, username);
+
+			try (ResultSet auction_rset = p.executeQuery()) {
+				while (auction_rset.next()) {
+					auction_id = auction_rset.getLong("auction_id");
+					bid_price = auction_rset.getInt("bid_price");
+
+					try (PreparedStatement pStmt = conn.prepareStatement(
+						"SELECT item_id, description, bid_end_time " +
+						"FROM items NATURAL JOIN auctions " +
+						"WHERE auction_id = ?"
+					)) {
+						pStmt.setLong(1, auction_id);
+
+						try (ResultSet rset = pStmt.executeQuery()) {
+							item_id = rset.getLong("item_id");
+							description = rset.getString("description");
+							bid_end_time = rset.getTimestamp("bid_end_time");
+						}
+					}
+
+					try (PreparedStatement pStmt = conn.prepareStatement(
+						"SELECT bidder_id, bid_price " +
+						"FROM bids " +
+						"WHERE auction_id = ? " +
+						"ORDER BY bid_price DESC, bid_time ASC " +
+						"LIMIT 1"
+					)) {
+						pStmt.setLong(1, auction_id);
+
+						try (ResultSet bid_rset = pStmt.executeQuery()) {
+							if (!bid_rset.next()) throw new SQLException();
+
+							highest_bidder_id = bid_rset.getString("bidder_id");
+							highest_bid_price = bid_rset.getInt("bid_price");
+						}
+					}
+
+					DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+					LocalDateTime dateTime = bid_end_time.toLocalDateTime();
+					System.out.println(
+						item_id + " | " +
+						description + " | " +
+						highest_bidder_id + " | " +
+						highest_bid_price + " | " +
+						bid_price + " | " +
+						dateTime.format(formatter)
+					);
+				}
+			}
+		} catch (SQLException e) {
+			System.out.println("SQLException : " + e);
+		}
+		System.out.println();
 	}
 
-	public static void CheckAccount(){
-		/* TODO: Check the balance of the current user.  */
+	public static void CheckAccount() {
+		/* TODO: Check the balance of the current user. */
+		handleAuctionClosure(); // 경매 마감 확인
+
 		System.out.println("[Sold Items] \n");
-		System.out.println("item category  | item ID   | sold date | sold price  | buyer ID | commission  ");
-		System.out.println("------------------------------------------------------------------------------");
-		/*
-		   while(rset.next(){
-		   System.out.println();
-		   }
-		 */
+		System.out.println("item category  | item ID   | sold date | sold price  | buyer ID");
+		System.out.println("---------------------------------------------------------------");
+
+		LocalDateTime dateTime;
+		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+		try (PreparedStatement pStmt = conn.prepareStatement(
+			"SELECT item_id, category, buyer_id, final_price, transaction_time " +
+			"FROM items NATURAL JOIN billings " +
+			"WHERE seller_id = ?"
+		)) {
+			pStmt.setString(1, username);
+
+			try (ResultSet rset = pStmt.executeQuery()) {
+				while (rset.next()) {
+					dateTime = rset.getTimestamp("transaction_time").toLocalDateTime();
+					System.out.println(
+						rset.getString("category") + " | " +
+						rset.getLong("item_id") +  " | " +
+						dateTime.format(formatter) + " | " +
+						rset.getInt("final_price") + " | " +
+						rset.getString("buyer_id")
+					);
+				}
+			}
+		} catch (SQLException e) {
+			System.out.println("SQLException : " + e);
+		}
+		System.out.println();
+
 		System.out.println("[Purchased Items] \n");
-		System.out.println("item category  | item ID   | purchased date | puchased price  | seller ID ");
-		System.out.println("--------------------------------------------------------------------------");
-		/*
-		   while(rset.next(){
-		   System.out.println();
-		   }
-		 */
+		System.out.println("item category  | item ID   | purchased date | puchased price  | seller ID");
+		System.out.println("-------------------------------------------------------------------------");
+
+		try (PreparedStatement pStmt = conn.prepareStatement(
+				"SELECT item_id, category, seller_id, final_price, transaction_time " +
+						"FROM items NATURAL JOIN billings " +
+						"WHERE buyer_id = ?"
+		)) {
+			pStmt.setString(1, username);
+
+			try (ResultSet rset = pStmt.executeQuery()) {
+				while (rset.next()) {
+					dateTime = rset.getTimestamp("transaction_time").toLocalDateTime();
+					System.out.println(
+						rset.getString("category") + " | " +
+						rset.getLong("item_id") +  " | " +
+						dateTime.format(formatter) + " | " +
+						rset.getInt("final_price") + " | " +
+						rset.getString("seller_id")
+					);
+				}
+			}
+		} catch (SQLException e) {
+			System.out.println("SQLException : " + e);
+		}
+		System.out.println();
 	}
 
 	public static void main(String[] args) {
