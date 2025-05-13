@@ -11,11 +11,11 @@ INSERT INTO items VALUES (102, 'OTHERS', 'Real Banana', 'NEW', 'banana', null);
 INSERT INTO auctions VALUES (102, 102, 2, 2, 10, '2024-08-03 00:00:00', '2024-08-05 00:00:00', 'SOLD');
 UPDATE items SET auction_id = 102 WHERE item_id = 102;
 
-INSERT INTO items VALUES (103, 'HOME', 'Durian Perfume', 'LIKE-NEW', 'durian', null);
+INSERT INTO items VALUES (103, 'HOME', 'Durian Perfume', 'LIKE_NEW', 'durian', null);
 INSERT INTO auctions VALUES (103, 103, 20, 20, 70, '2024-09-12 00:00:00', '2024-10-30 00:00:00', 'SOLD');
 UPDATE items SET auction_id = 103 WHERE item_id = 103;
 
-INSERT INTO items VALUES (104, 'CLOTHING', 'Banana Costume', 'LIKE-NEW', 'banana', null);
+INSERT INTO items VALUES (104, 'CLOTHING', 'Banana Costume', 'LIKE_NEW', 'banana', null);
 INSERT INTO auctions VALUES (104, 104, 10, 10, 15, '2025-03-21 00:00:00', '2025-04-01 00:00:00', 'EXPIRED');
 UPDATE items SET auction_id = 104 WHERE item_id = 104;
 
@@ -31,7 +31,7 @@ INSERT INTO items VALUES (107, 'ELECTRONICS', 'CherryPods', 'ACCEPTABLE', 'cherr
 INSERT INTO auctions VALUES (107, 107, 4, 4, 25, '2025-05-03 01:00:00', '2025-06-30 00:00:00', 'LISTED');
 UPDATE items SET auction_id = 107 WHERE item_id = 107;
 
-INSERT INTO items VALUES (108, 'ELECTRONICS', 'Mac Book Air', 'LIKE-NEW', 'apple', null);
+INSERT INTO items VALUES (108, 'ELECTRONICS', 'Mac Book Air', 'LIKE_NEW', 'apple', null);
 INSERT INTO auctions VALUES (108, 108, 500, 500, 1000, '2025-05-05 00:00:00', '2025-06-25 00:00:00', 'BIDDING');
 UPDATE items SET auction_id = 108 WHERE item_id = 108;
 
@@ -39,8 +39,8 @@ INSERT INTO items VALUES (109, 'ELECTRONICS', 'AirPods', 'GOOD', 'apple', null);
 INSERT INTO auctions VALUES (109, 109, 100, 100, 200, '2025-05-05 00:00:00', '2025-05-08 00:00:00', 'SOLD');
 UPDATE items SET auction_id = 109 WHERE item_id = 109;
 
-INSERT INTO items VALUES (110, 'ELECTRONICS', 'Apple Watch', 'LIKE-NEW', 'apple', null);
-INSERT INTO auctions VALUES (110, 110, 300, 300, 800, '2025-05-10 00:00:00', '2025-05-12 00:00:00', 'SOLD');
+INSERT INTO items VALUES (110, 'ELECTRONICS', 'Apple Watch', 'LIKE_NEW', 'apple', null);
+INSERT INTO auctions VALUES (110, 110, 300, 300, 800, '2025-05-10 00:00:00', '2025-05-12 00:00:00', 'BIDDING');
 UPDATE items SET auction_id = 110 WHERE item_id = 110;
 
 
@@ -63,7 +63,7 @@ INSERT INTO bids VALUES (107, 'cherry', 109, 200, '2025-05-06 00:00:00', 'WON');
 INSERT INTO billings VALUES (105, 109, 'cherry', 'apple', 200, '2025-05-06 00:00:00', 'COMPLETED'); -- 전자제품 에어팟 (즉시 구매)
 
 INSERT INTO bids VALUES (108, 'banana', 110, 350, '2025-05-10 09:00:00', 'OUTBID'); -- 전자제품 애플 워치
-INSERT INTO bids VALUES (109, 'durian', 110, 700, '2025-05-10 13:00:00', 'WON'); -- 전자제품 애플 워치
--- INSERT INTO billings VALUES (106, 110, 'durian', 'apple', 700, '2025-05-12 00:00:00', 'COMPLETED'); -- 전자제품 애플 워치 (자동 최신화)
+INSERT INTO bids VALUES (109, 'durian', 110, 700, '2025-05-10 13:00:00', 'ACTIVE'); -- 전자제품 애플 워치
+-- INSERT INTO billings VALUES (106, 110, 'durian', 'apple', 700, '2025-05-12 00:00:00', 'COMPLETED'); -- 전자제품 애플 워치 (자동 최신화, 현재 BIDDIG)
 
 INSERT INTO bids VALUES (110, 'durian', 108, 600, '2025-05-11 00:00:00', 'ACTIVE'); -- 전자제품 맥북 에어
