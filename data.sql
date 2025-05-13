@@ -1,4 +1,8 @@
 -- 유저 등록
+-- INSERT INTO users(user_id, password) VALUES ('apple', 'apple');
+-- INSERT INTO users(user_id, password) VALUES ('banana', 'banana');
+-- INSERT INTO users(user_id, password) VALUES ('cherry', 'cherry');
+-- INSERT INTO users VALUES ('admin', 'admin', true);
 INSERT INTO users(user_id, password) VALUES ('durian', 'durian');
 INSERT INTO users(user_id, password) VALUES ('fig', 'fig');
 
@@ -64,6 +68,5 @@ INSERT INTO billings VALUES (105, 109, 'cherry', 'apple', 200, '2025-05-06 00:00
 
 INSERT INTO bids VALUES (108, 'banana', 110, 350, '2025-05-10 09:00:00', 'OUTBID'); -- 전자제품 애플 워치
 INSERT INTO bids VALUES (109, 'durian', 110, 700, '2025-05-10 13:00:00', 'ACTIVE'); -- 전자제품 애플 워치
--- INSERT INTO billings VALUES (106, 110, 'durian', 'apple', 700, '2025-05-12 00:00:00', 'COMPLETED'); -- 전자제품 애플 워치 (자동 최신화, 현재 BIDDIG)
 
 INSERT INTO bids VALUES (110, 'durian', 108, 600, '2025-05-11 00:00:00', 'ACTIVE'); -- 전자제품 맥북 에어
