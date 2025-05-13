@@ -98,7 +98,7 @@ public class Auction {
 
 						// 청구서 작성
 						try (PreparedStatement pStmt = conn.prepareStatement(
-							"INSERT INTO billing (item_id, buyer_id, seller_id, final_price, transaction_time) " +
+							"INSERT INTO billings (item_id, buyer_id, seller_id, final_price, transaction_time) " +
 							"VALUES (?, ?, ?, ?, ?)"
 						)) {
 							pStmt.setLong(1, item_id);
@@ -237,7 +237,7 @@ public class Auction {
 
 		/* TODO: check the admin's account and password. */
 		try (PreparedStatement pStmt = conn.prepareStatement(
-			"SELECT * " +
+			"SELECT 1 " +
 			"FROM users " +
 			"WHERE user_id = ? AND password = ? AND is_admin = TRUE"
 		)) {
@@ -386,7 +386,8 @@ public class Auction {
 				try (PreparedStatement pStmt = conn.prepareStatement(
 					"SELECT seller_id, COUNT(*) AS item_num, SUM(final_price) AS total_profit " +
 					"FROM billings " +
-					"GROUP BY seller_id"
+					"GROUP BY seller_id " +
+					"ORDER BY total_profit DESC, item_num DESC"
 				)) {
 					try (ResultSet rset = pStmt.executeQuery()) {
 						while (rset.next()) {
@@ -418,7 +419,8 @@ public class Auction {
 				try (PreparedStatement pStmt = conn.prepareStatement(
 					"SELECT buyer_id, COUNT(*) AS item_num, SUM(final_price) AS total_spent " +
 					"FROM billings " +
-					"GROUP BY buyer_id"
+					"GROUP BY buyer_id " +
+					"ORDER BY total_spent DESC, item_num DESC"
 				)) {
 					try (ResultSet rset = pStmt.executeQuery()) {
 						while (rset.next()) {
@@ -583,7 +585,8 @@ public class Auction {
 			conn.setAutoCommit(false);
 
 			try (PreparedStatement pStmt = conn.prepareStatement(
-				"INSERT INTO items (category, description, condition, seller_id, auction_id) VALUES (?, ?, ?, ?, NULL)",
+				"INSERT INTO items (category, description, condition, seller_id, auction_id) " +
+					"VALUES (?, ?, ?, ?, NULL)",
 				Statement.RETURN_GENERATED_KEYS  // for auto-generated item_id
 			)) {
 				pStmt.setString(1, category.name());
@@ -599,7 +602,8 @@ public class Auction {
 			}
 
 			try (PreparedStatement pStmt = conn.prepareStatement(
-				"INSERT INTO auctions (item_id, starting_price, current_price, buy_it_now_price, bid_end_time) VALUES (?, ?, ?, ?, ?)",
+				"INSERT INTO auctions (item_id, starting_price, current_price, buy_it_now_price, bid_end_time) " +
+					"VALUES (?, ?, ?, ?, ?)",
 				Statement.RETURN_GENERATED_KEYS // for auto-generated item_id
 			)) {
 				pStmt.setLong(1, item_id);
@@ -850,8 +854,8 @@ public class Auction {
 			"FROM items NATURAL JOIN auctions " +
 			"WHERE condition = ? AND description LIKE ? AND bid_start_time > ? AND " +
 				"(status = 'LISTED' OR status = 'BIDDING') " +
-				(any_category ? "" : "category = ? ") +
-				(any_seller ? "" : "seller_id = ?")
+				(any_category ? "" : "AND category = ? ") +
+				(any_seller ? "" : "AND seller_id = ?")
 		)) {
 			p.setString(1, condition.name());
 			p.setString(2, "%" + keyword + "%");
@@ -1002,24 +1006,25 @@ public class Auction {
 			return;
 		}
 
-		// 새 입찰서 작성
-		try (PreparedStatement pStmt = conn.prepareStatement(
-			"INSERT INTO bids(bidder_id, auction_id, bid_price) VALUES (?, ?, ?)"
-		)) {
-			pStmt.setString(1, username);
-			pStmt.setLong(2, auction_id);
-			pStmt.setInt(3, price);
-			if (pStmt.executeUpdate() == 0) throw new SQLException();
-		} catch (SQLException e) {
-			System.out.println("SQLException : " + e);
-			return;
-		}
-
 		/* If the bid price is higher than the Buy-It-Now price, the buyer pays the B-I-N price. */
 		if (price >= BIN_price) {
+			// 새 입찰서 작성
+			try (PreparedStatement pStmt = conn.prepareStatement(
+				"INSERT INTO bids(bidder_id, auction_id, bid_price, bid_status) VALUES (?, ?, ?, 'WON')"
+			)) {
+				pStmt.setString(1, username);
+				pStmt.setLong(2, auction_id);
+				pStmt.setInt(3, price);
+				if (pStmt.executeUpdate() == 0) throw new SQLException();
+			} catch (SQLException e) {
+				System.out.println("SQLException : " + e);
+				return;
+			}
+
 			// 경매에서 현재 가격과 경매 상태 변경
 			try (PreparedStatement pStmt = conn.prepareStatement(
-					"UPDATE auctions SET current_price = ?, status = 'SOLD' WHERE auction_id = ?"
+				"UPDATE auctions SET current_price = ?, status = 'SOLD', bid_end_time = CURRENT_TIMESTAMP " +
+				"WHERE auction_id = ?"
 			)) {
 				pStmt.setInt(1, price);
 				pStmt.setLong(2, auction_id);
@@ -1048,6 +1053,19 @@ public class Auction {
 
 		/* Otherwise, print the following */
 		else {
+			// 새 입찰서 작성
+			try (PreparedStatement pStmt = conn.prepareStatement(
+				"INSERT INTO bids(bidder_id, auction_id, bid_price) VALUES (?, ?, ?)"
+			)) {
+				pStmt.setString(1, username);
+				pStmt.setLong(2, auction_id);
+				pStmt.setInt(3, price);
+				if (pStmt.executeUpdate() == 0) throw new SQLException();
+			} catch (SQLException e) {
+				System.out.println("SQLException : " + e);
+				return;
+			}
+
 			// 경매에서 현재 가격과 경매 상태 변경
 			try (PreparedStatement pStmt = conn.prepareStatement(
 				"UPDATE auctions SET current_price = ?, status = 'BIDDING' WHERE auction_id = ?"
@@ -1094,6 +1112,8 @@ public class Auction {
 						pStmt.setLong(1, auction_id);
 
 						try (ResultSet rset = pStmt.executeQuery()) {
+							if (!rset.next()) throw new SQLException();
+
 							item_id = rset.getLong("item_id");
 							description = rset.getString("description");
 							bid_end_time = rset.getTimestamp("bid_end_time");
