@@ -284,6 +284,14 @@ public class Auction {
 				category = scanner.next();
 				scanner.nextLine();
 
+				try {
+					Category.valueOf(category);
+				} catch (IllegalArgumentException e) {
+					System.out.println("Error: Invalid input is entered. Try again.\n");
+					continue;
+				}
+				System.out.println();
+
 				System.out.println("sold item       | sold date       | seller ID   | buyer ID   | price");
 				System.out.println("--------------------------------------------------------------------");
 
@@ -568,12 +576,14 @@ public class Auction {
 			}
 			BIN_price = scanner.nextInt();
 			scanner.nextLine();
+			if (start_price > BIN_price) throw new Exception();
 
 			System.out.print("---- Bid closing date and time (YYYY-MM-DD HH:MM): ");
 			// you may assume users always enter valid date/time
 			String date = scanner.nextLine();  // "2023-03-04 11:30"
 			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 			dateTime = LocalDateTime.parse(date, formatter);
+			if (dateTime.isBefore(LocalDateTime.now())) throw new Exception();
 		} catch (Exception e) {
 			System.out.println("Error: Invalid input is entered. Going back to the previous menu.\n");
 			return;
@@ -1129,11 +1139,11 @@ public class Auction {
 					)) {
 						pStmt.setLong(1, auction_id);
 
-						try (ResultSet bid_rset = pStmt.executeQuery()) {
-							if (!bid_rset.next()) throw new SQLException();
+						try (ResultSet rset = pStmt.executeQuery()) {
+							if (!rset.next()) throw new SQLException();
 
-							highest_bidder_id = bid_rset.getString("bidder_id");
-							highest_bid_price = bid_rset.getInt("bid_price");
+							highest_bidder_id = rset.getString("bidder_id");
+							highest_bid_price = rset.getInt("bid_price");
 						}
 					}
 
