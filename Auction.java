@@ -414,6 +414,22 @@ public class Auction {
 					System.out.println("SQLException : " + e);
 					return;
 				}
+				// 판매 기록이 없는 유저도 출력
+				try (PreparedStatement pStmt = conn.prepareStatement(
+					"SELECT u.user_id " +
+					"FROM users u LEFT JOIN billings b ON u.user_id = b.seller_id " +
+					"WHERE b.seller_id IS NULL"
+				)) {
+					try (ResultSet rset = pStmt.executeQuery()) {
+						while (rset.next()) {
+							seller_id = rset.getString("user_id");
+							System.out.println(seller_id + " | 0 | 0");
+						}
+					}
+				} catch (SQLException e) {
+					System.out.println("SQLException : " + e);
+					return;
+				}
 				System.out.println();
 			} else if (choice == '4') {
 				/* TODO: Print Buyer Ranking */
@@ -441,6 +457,22 @@ public class Auction {
 								item_num + " | " +
 								total_spent + " | "
 							);
+						}
+					}
+				} catch (SQLException e) {
+					System.out.println("SQLException : " + e);
+					return;
+				}
+				// 구매 기록이 없는 유저도 출력
+				try (PreparedStatement pStmt = conn.prepareStatement(
+						"SELECT u.user_id " +
+								"FROM users u LEFT JOIN billings b ON u.user_id = b.buyer_id " +
+								"WHERE b.buyer_id IS NULL"
+				)) {
+					try (ResultSet rset = pStmt.executeQuery()) {
+						while (rset.next()) {
+							buyer_id = rset.getString("user_id");
+							System.out.println(buyer_id + " | 0 | 0");
 						}
 					}
 				} catch (SQLException e) {
