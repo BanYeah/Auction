@@ -25,7 +25,7 @@ public class Auction {
 		ACCEPTABLE
 	}
 
-	private static void handleAuctionClosure() {
+	private static void HandleAuctionClosure() {
 		/* 입찰 시간이 종료(즉, 경매 마감)되었지만, 경매 상태가 변경되지 않은 경매를 처리  */
 		// 1. 경매가 마감되었지만, 경매 상태가 'LISTED'거나 'BIDDING'인 경매 선택
 		// 2. 경매 상태를 각각 'LISTED'인 경우 'EXPIRED'로, 'BIDDING'인 경우 'SOLD'로 변경
@@ -139,8 +139,10 @@ public class Auction {
 
 		username = scanner.next();
 		scanner.nextLine();
-		if(username.equalsIgnoreCase("back"))
+		if(username.equalsIgnoreCase("back")) {
+			System.out.println();
 			return;
+		}
 
 		System.out.print("     password: ");
 		userpass = scanner.next();
@@ -163,7 +165,6 @@ public class Auction {
 			username = null;
 			return;
 		}
-
 		System.out.println("You are successfully logged in.\n");
 	}
 
@@ -225,8 +226,10 @@ public class Auction {
 
 		adminname = scanner.next();
 		scanner.nextLine();
-		if (adminname.equalsIgnoreCase("back"))
+		if (adminname.equalsIgnoreCase("back")) {
+			System.out.println();
 			return;
+		}
 
 		System.out.print("---- password: ");
 		adminpass = scanner.next();
@@ -269,14 +272,15 @@ public class Auction {
 				System.out.println("Error: Invalid input is entered. Try again.\n");
 				continue;
 			}
+			System.out.println();
 
 			LocalDateTime dateTime;
 			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 			if (choice == '1') {
 				/* TODO: Print Sold Items per Category */
-				handleAuctionClosure(); // 경매 마감 확인
+				HandleAuctionClosure(); // 경매 마감 확인
 
-				System.out.println("----Enter Category to search : ");
+				System.out.print("----Enter Category to search : ");
 				category = scanner.next();
 				scanner.nextLine();
 
@@ -331,11 +335,12 @@ public class Auction {
 				System.out.println();
 			} else if (choice == '2') {
 				/* TODO: Print Account Balance for Seller */
-				handleAuctionClosure(); // 경매 마감 확인
+				HandleAuctionClosure(); // 경매 마감 확인
 
-				System.out.println("---- Enter Seller ID to search : ");
+				System.out.print("---- Enter Seller ID to search : ");
 				seller = scanner.next();
 				scanner.nextLine();
+				System.out.println();
 
 				System.out.println("sold item       | sold date       | buyer ID   | price");
 				System.out.println("------------------------------------------------------");
@@ -371,7 +376,7 @@ public class Auction {
 				System.out.println();
 			} else if (choice == '3') {
 				/* TODO: Print Seller Ranking */
-				handleAuctionClosure(); // 경매 마감 확인
+				HandleAuctionClosure(); // 경매 마감 확인
 
 				System.out.println("seller ID   | # of items sold | Total Profit");
 				System.out.println("--------------------------------------------");
@@ -392,7 +397,7 @@ public class Auction {
 							System.out.println(
 								seller_id + " | " +
 								item_num + " | " +
-								total_profit + " | "
+								total_profit
 							);
 						}
 					}
@@ -403,7 +408,7 @@ public class Auction {
 				System.out.println();
 			} else if (choice == '4') {
 				/* TODO: Print Buyer Ranking */
-				handleAuctionClosure(); // 경매 마감 확인
+				HandleAuctionClosure(); // 경매 마감 확인
 
 				System.out.println("buyer ID   | # of items purchased | Total Money Spent");
 				System.out.println("-----------------------------------------------------");
@@ -543,10 +548,10 @@ public class Auction {
 		System.out.println();
 
 		try {
-			System.out.println("---- Description of the item (one line): ");
+			System.out.print("---- Description of the item (one line): ");
 			description = scanner.nextLine();
 
-			System.out.println("---- Starting price: ");
+			System.out.print("---- Starting price: ");
 			while (!scanner.hasNextInt()) {
 				scanner.next();
 				System.out.println("Invalid input is entered. Please enter Starting price: ");
@@ -554,7 +559,7 @@ public class Auction {
 			start_price = scanner.nextInt();
 			scanner.nextLine();
 
-			System.out.println("---- Buy-It-Now price: ");
+			System.out.print("---- Buy-It-Now price: ");
 			while (!scanner.hasNextInt()) {
 				scanner.next();
 				System.out.println("Invalid input is entered. Please enter Buy-It-Now price: ");
@@ -640,7 +645,7 @@ public class Auction {
 
 	public static void CheckSellStatus() {
 		/* TODO: Check the status of the item the current user is selling */
-		handleAuctionClosure(); // 경매 마감 확인
+		HandleAuctionClosure(); // 경매 마감 확인
 
 		System.out.println("item listed in Auction | status | bidder (buyer ID) | bidding price | bidding date/time");
 		System.out.println("---------------------------------------------------------------------------------------");
@@ -724,6 +729,7 @@ public class Auction {
 				System.out.println("Error: Invalid input is entered. Try again.\n");
 				return;
 			}
+			System.out.println();
 
 			flag_catg = true;
 			switch (choice) {
@@ -773,6 +779,7 @@ public class Auction {
 				System.out.println("Error: Invalid input is entered. Try again.\n");
 				return;
 			}
+			System.out.println();
 
 			flag_cond = true;
 			switch (choice) {
@@ -797,21 +804,23 @@ public class Auction {
 			}
 		} while (!flag_cond);
 
-		System.out.println("---- Enter keyword to search the description : ");
-		keyword = scanner.next();
-		scanner.nextLine();
+		System.out.print("---- Enter keyword to search the description : ");
+		keyword = scanner.nextLine();
+		System.out.println();
 
-		System.out.println("---- Enter Seller ID to search : ");
 		System.out.println(" ** Enter 'any' if you want to see items from any seller. ");
+		System.out.print("---- Enter Seller ID to search : ");
 		seller = scanner.next();
 		scanner.nextLine();
+		System.out.println();
 
-		System.out.println("---- Enter date posted (YYYY-MM-DD): ");
 		System.out.println(" ** This will search items that have been posted after the designated date.");
+		System.out.print("---- Enter date posted (YYYY-MM-DD): ");
 		datePosted = scanner.next();
 		scanner.nextLine();
 		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 		date = LocalDate.parse(datePosted, formatter).atStartOfDay();
+		System.out.println();
 
 
 		/* TODO: Query condition: item category */
@@ -821,7 +830,7 @@ public class Auction {
 		/* TODO: Query condition: posted date of item */
 
 		/* TODO: List all items that match the query condition */
-		handleAuctionClosure(); // 경매 마감 확인
+		HandleAuctionClosure(); // 경매 마감 확인
 
 		System.out.println("Item ID | Item description | Condition | Seller | Buy-It-Now | Current Bid | highest bidder | Time left | bid close");
 		System.out.println("-------------------------------------------------------------------------------------------------------------------");
@@ -915,14 +924,14 @@ public class Auction {
 		}
 		System.out.println();
 
-		System.out.println("---- Select Item ID to buy or bid: ");
+		System.out.print("---- Select Item ID to buy or bid: ");
 
 		int price;
 		try {
 			item_id = scanner.nextLong();
 			scanner.nextLine();
 
-			System.out.println("     Price: ");
+			System.out.print("     Price: ");
 			price = scanner.nextInt();
 			scanner.nextLine();
 		} catch (java.util.InputMismatchException e) {
@@ -931,7 +940,7 @@ public class Auction {
 		}
 
 		/* TODO: Buy-it-now or bid: If the entered price is higher or equal to Buy-It-Now price, the bid ends and the following needs to be printed. */
-		handleAuctionClosure(); // 경매 마감 확인
+		HandleAuctionClosure(); // 경매 마감 확인
 
 		String status;
 		try (PreparedStatement pStmt = conn.prepareStatement(
@@ -970,7 +979,7 @@ public class Auction {
 			return;
 		}
 
-		// 해당 경매에 해당하는 모든 입찰서의 상태를 'OUTBID'로 변경
+		// 해당 경매의 모든 입찰서의 상태를 'OUTBID'로 변경
 		try (PreparedStatement pStmt = conn.prepareStatement(
 			"UPDATE bids SET bid_status = 'OUTBID' WHERE auction_id = ?"
 		)) {
@@ -1058,7 +1067,7 @@ public class Auction {
 	public static void CheckBuyStatus() {
 		/* TODO: Check the status of the item the current buyer is bidding on */
 		/* Even if you are outbidded or the bid closing date has passed, all the items this user has bidded on must be displayed */
-		handleAuctionClosure(); // 경매 마감 확인
+		HandleAuctionClosure(); // 경매 마감 확인
 
 		System.out.println("item ID   | item description   | highest bidder | highest bidding price | your bidding price | bid closing date/time");
 		System.out.println("--------------------------------------------------------------------------------------------------------------------");
@@ -1128,7 +1137,7 @@ public class Auction {
 
 	public static void CheckAccount() {
 		/* TODO: Check the balance of the current user. */
-		handleAuctionClosure(); // 경매 마감 확인
+		HandleAuctionClosure(); // 경매 마감 확인
 
 		System.out.println("[Sold Items] \n");
 		System.out.println("item category  | item ID   | sold date | sold price  | buyer ID");
